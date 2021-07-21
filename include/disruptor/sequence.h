@@ -26,7 +26,7 @@ namespace disruptor {
  */
 class sequence {
  public:
-  explicit sequence(int64_t v = 0) : _sequence(v), _alert(false) {}
+  explicit sequence(int64_t v = -1) : _sequence(v), _alert(false) {}
 
   int64_t acquire() const { return _sequence.load(std::memory_order_acquire); }
   void store(int64_t value) {

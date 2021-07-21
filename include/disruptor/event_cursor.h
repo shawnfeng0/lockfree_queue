@@ -86,7 +86,7 @@ class event_cursor : public sequence {
   using sequence::store;
 
  public:
-  explicit event_cursor() : sequence(-1) {}
+  event_cursor() : sequence(-1) {}
 
   /** this event processor will process every event
    *  upto, but not including s

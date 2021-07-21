@@ -44,7 +44,7 @@ class single_producer_sequencer : public event_cursor {
     auto wrap_point = next_sequence - size_;
 
     if (cached_min_sequence_ <= wrap_point) {
-      int64_t min_sequence = barrier_.get_min(wrap_point);
+      auto min_sequence = barrier_.get_min(wrap_point);
       while (min_sequence <= wrap_point) {
         std::this_thread::yield();
         min_sequence = barrier_.get_min(wrap_point);
