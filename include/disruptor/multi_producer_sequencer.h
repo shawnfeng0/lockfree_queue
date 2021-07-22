@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <disruptor/single_producer_sequencer.h>
+#include <disruptor/event_cursor.h>
 
 namespace disruptor {
 
@@ -14,53 +14,73 @@ namespace disruptor {
  *  in an atomic manner.
  *
  *  @code
- *  auto start = cur->claim(slots);
+ *  auto start = cur->next(slots);
  *  ... do your writes...
  *  cur->publish_after( start + slots, start -1 );
  *  @endcode
  *
  */
-class multi_producer_sequencer : public single_producer_sequencer {
+class MultiProducerSequencer : public EventCursor {
+ private:
+  using EventCursor::publish;
+
  public:
   /** @param s - the size of the ringbuffer,
    *  required to do proper wrap detection
    **/
-  explicit multi_producer_sequencer(int64_t s) : single_producer_sequencer(s) {}
+  explicit MultiProducerSequencer(int64_t s) : size_(s) {
+    cached_min_sequence_ = Sequence::INIT_SEQUENCE;
+  }
 
-  /** When there are multiple writers they cannot both
-   *  assume the right to write to begin() to end(),
-   *  instead they must first claim some slots in an
-   *  atomic manner.
+  /**
+   * When there are multiple writers they cannot both assume the right to
+   * write, instead they must first next some slots in an atomic manner.
    *
-   *
-   *  After pos().acquire() == claim( slots ) -1 the claimer
+   *  After pos().acquire() == next( slots ) -1 the claimer
    *  is free to call publish up to start + slots -1
    *
    *  @return the first slot the caller may write to.
    */
-  int64_t claim(int64_t num_slots) {
-    if (num_slots < 1 || num_slots < size_) {
+  int64_t next(int64_t num_slots = 1) {
+    if (num_slots < 1 || num_slots > size_) {
       throw std::runtime_error("num must be > 0 and < size");
     }
-    auto pos = _claim_cursor.increment_and_get(num_slots);
+    auto next_sequence = claim_cursor_.increment_and_get(num_slots);
+    auto wrap_point = next_sequence - size_;
+
     // make sure there is enough space to write
-    wait_for(pos);  // TODO: -1????
-    return pos - num_slots;
+    if (wrap_point >= cached_min_sequence_) {
+      int64_t min_sequence;
+      while (!eof() &&
+             wrap_point >= (min_sequence = barrier_.get_min(wrap_point))) {
+        std::this_thread::yield();
+      }
+      cached_min_sequence_ = min_sequence;
+    }
+
+    if (eof()) throw Eof{};
+
+    return next_sequence;
   }
 
   void publish_after(int64_t pos, int64_t after_pos) {
-    try {
-      assert(pos > after_pos);
-      barrier_.wait_for(after_pos);
-      publish(pos);
-    } catch (...) {
-      set_eof();
-      throw;
+    assert(pos > after_pos);
+
+    // Wait other producers
+    while (!eof() && after_pos > acquire()) {
+      // Busy waiting, if other producers claim the sequence, it should complete
+      // the release as soon as possible
     }
+
+    if (eof()) throw Eof{};
+
+    publish(pos);
   }
 
  private:
-  sequence _claim_cursor;
+  const int64_t size_;
+  Sequence claim_cursor_;
+  int64_t cached_min_sequence_;
 };
 
 }  // namespace disruptor

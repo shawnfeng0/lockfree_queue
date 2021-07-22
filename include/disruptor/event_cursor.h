@@ -81,13 +81,11 @@ namespace disruptor {
  *
  *
  */
-class event_cursor : public sequence {
+class EventCursor : public Sequence {
  private:
-  using sequence::store;
+  using Sequence::store;
 
  public:
-  event_cursor() : sequence(-1) {}
-
   /** this event processor will process every event
    *  upto, but not including s
    */
@@ -101,7 +99,7 @@ class event_cursor : public sequence {
 
  protected:
   /** last know available, min(_limit_seq) */
-  barrier barrier_;
+  Barrier barrier_;
 };
 
 }  // namespace disruptor

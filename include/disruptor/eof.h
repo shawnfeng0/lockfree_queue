@@ -8,7 +8,7 @@
 
 namespace disruptor {
 
-class eof : public std::exception {
+class Eof : public std::exception {
  public:
   const char* what() const noexcept override { return "eof"; }
 };

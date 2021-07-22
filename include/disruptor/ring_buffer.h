@@ -19,7 +19,7 @@ namespace disruptor {
  *  a power of 2 size.
  */
 template <typename EventType, uint64_t Size = 1024>
-class ring_buffer {
+class RingBuffer {
  public:
   typedef EventType event_type;
 

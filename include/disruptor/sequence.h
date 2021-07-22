@@ -24,22 +24,23 @@ namespace disruptor {
  *  extra state includes whether or not this sequence number is 'EOF' and
  *  whether or not any alerts have been published.
  */
-class sequence {
+class Sequence {
  public:
-  explicit sequence(int64_t v = -1) : _sequence(v), _alert(false) {}
+  int64_t INIT_SEQUENCE = -1;
+  Sequence() : _sequence(INIT_SEQUENCE), _alert(false) {}
 
   int64_t acquire() const { return _sequence.load(std::memory_order_acquire); }
   void store(int64_t value) {
     _sequence.store(value, std::memory_order_release);
   }
 
-  /** when the cursor hits the end of a stream, it can set the eof flag */
-  void set_eof() { _alert = true; }
-  bool eof() const { return _alert; }
-
   int64_t increment_and_get(int64_t inc) {
     return _sequence.fetch_add(inc, std::memory_order_release) + inc;
   }
+
+  /** when the cursor hits the end of a stream, it can set the eof flag */
+  void set_eof() { _alert = true; }
+  bool eof() const { return _alert; }
 
  private:
   std::atomic<int64_t> _sequence;

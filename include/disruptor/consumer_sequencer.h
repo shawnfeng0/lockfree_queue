@@ -12,10 +12,8 @@ namespace disruptor {
 /**
  *  Tracks the read position in a buffer
  */
-class consumer_sequencer : public event_cursor {
+class ConsumerSequencer : public EventCursor {
  public:
-  explicit consumer_sequencer() : event_cursor() {}
-
   int64_t wait_for(int64_t next_sequence) {
     try {
       return barrier_.wait_for(next_sequence);

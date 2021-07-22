@@ -25,9 +25,9 @@ namespace disruptor {
  *   or not they must 'notify'.  The progressive backoff approach
  *   uses little CPU and is a good compromise for most use cases.
  */
-class barrier {
+class Barrier {
  public:
-  void follow(std::shared_ptr<const sequence> e) {
+  void follow(std::shared_ptr<const Sequence> e) {
     limit_seq_.push_back(std::move(e));
   }
 
@@ -78,7 +78,7 @@ class barrier {
       if (itr->eof()) {
         if (itr_pos > pos)
           return itr_pos - 1;  // process everything up to itr_pos
-        throw eof();
+        throw Eof();
       }
 
       if (itr_pos < min_pos) min_pos = itr_pos;
@@ -89,7 +89,7 @@ class barrier {
 
  private:
   mutable int64_t last_min_{};
-  std::vector<std::shared_ptr<const sequence>> limit_seq_;
+  std::vector<std::shared_ptr<const Sequence>> limit_seq_;
 };
 
 }  // namespace disruptor
